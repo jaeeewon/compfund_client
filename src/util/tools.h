@@ -12,3 +12,6 @@ void signalHandler(int signum = 0);
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType);
 void render_ascii_from_grayscale_raw(const std::vector<unsigned char> &raw, int width, int height);
 void openMessageBox(const std::string &title, const std::string &body);
+std::pair<std::string, std::vector<std::string>> prettier(
+    const std::vector<std::string> &keys,
+    const std::vector<std::vector<std::string>> &values);

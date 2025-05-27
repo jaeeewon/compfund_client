@@ -22,8 +22,6 @@
 #include <windows.h>
 #include <ws2tcpip.h>
 
-#pragma comment(lib, "ws2_32.lib")
-
 #undef max
 
 #include "util/json.hpp"

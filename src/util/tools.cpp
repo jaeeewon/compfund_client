@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include "util/global.h"
+#include "util/common.h"
 
 std::string base64_encode(const std::string &in)
 {
@@ -154,4 +155,46 @@ void openMessageBox(const std::string &title, const std::string &body)
     MultiByteToWideChar(CP_UTF8, 0, title.c_str(), -1, &wTitle[0], lenTitle);
 
     MessageBoxW(NULL, wMsg.c_str(), wTitle.c_str(), MB_OK | MB_ICONINFORMATION);
+}
+
+std::pair<std::string, std::vector<std::string>> prettier(
+    const std::vector<std::string> &keys,
+    const std::vector<std::vector<std::string>> &values)
+{
+    std::vector<size_t> widths(keys.size());
+    std::vector<std::string> rows;
+
+    for (size_t i = 0; i < keys.size(); ++i)
+        widths[i] = keys[i].size();
+
+    for (const auto &row : values)
+    {
+        for (size_t i = 0; i < row.size(); ++i)
+        {
+            if (i < widths.size())
+                widths[i] = std::max(widths[i], row[i].size());
+        }
+    }
+
+    std::string header;
+    for (size_t i = 0; i < keys.size(); ++i)
+    {
+        if (i > 0)
+            header += " | ";
+        header += std::format("{0:<{1}}", keys[i], widths[i]);
+    }
+
+    for (const auto &row : values)
+    {
+        std::string line;
+        for (size_t i = 0; i < row.size(); ++i)
+        {
+            if (i > 0)
+                line += " | ";
+            line += std::format("{0:<{1}}", row[i], widths[i]);
+        }
+        rows.push_back(line);
+    }
+
+    return {header, rows};
 }

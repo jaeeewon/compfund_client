@@ -96,25 +96,35 @@ int main(int argc, char *argv[])
                     std::cout << "아직 참여한 방이 없습니다!" << std::endl;
                     continue;
                 }
-                // int selected = selectRoom(shared.rooms);
 
-                std::vector<std::string> msgs;
-
-                std::vector<std::string> roomNames;
-                for (const auto &kv : shared.rooms)
-                    roomNames.push_back(kv.first);
-
-                for (int i = 0; i < roomNames.size(); ++i)
+                std::vector<std::vector<std::string>> v;
+                for (const auto &[roomName, room] : shared.rooms)
                 {
-                    const auto &room = shared.rooms.at(roomNames[i]);
-                    std::string msg = std::format("{} | {} | 참여자:", room.roomName, room.description);
+                    std::string pts;
+                    std::vector<std::string> nicknames;
                     for (const auto &p : room.participants)
-                        msg.append(std::format(" {},", ptstate.participants[p].nickname));
-                    msg.pop_back();
-                    msgs.push_back(msg);
-                }
+                    {
+                        auto it = ptstate.participants.find(p);
+                        if (it != ptstate.participants.end())
+                            nicknames.push_back(it->second.nickname);
+                    }
 
-                int selected = selector("방을 선택하세요", msgs);
+                    if (!nicknames.empty())
+                    {
+                        pts += " ";
+                        for (auto i = 0; i < nicknames.size(); ++i)
+                        {
+                            pts += nicknames[i];
+                            if (i != nicknames.size() - 1)
+                                pts += " | ";
+                        }
+                    }
+
+                    v.push_back({room.roomName, room.description, room.latestChat, pts});
+                }
+                auto [header, rooms] = prettier({"방 제목", "방 설명", "최근 채팅 시간", "참여자"}, v);
+
+                int selected = selector("방을 선택하세요", rooms, header);
 
                 if (selected == -1)
                 {

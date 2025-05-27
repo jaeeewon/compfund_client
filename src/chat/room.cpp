@@ -213,36 +213,12 @@ void handleRoomList()
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 
-    std::vector<std::string> rooms;
-
-    std::string roomName = "방 제목";
-    std::string roomDescription = "방 설명";
-    std::string roomLatestChat = "최근 채팅 시간";
-
-    size_t nameWidth = roomName.size();
-    size_t descWidth = roomDescription.size();
-    size_t timeWidth = roomLatestChat.size();
-
+    std::vector<std::vector<std::string>> v;
     for (const auto &room : visiting.rooms)
     {
-        nameWidth = std::max(nameWidth, room.roomName.size());
-        descWidth = std::max(descWidth, room.description.size());
-        timeWidth = std::max(timeWidth, room.latestChat.size());
+        v.push_back({room.roomName, room.description, room.latestChat});
     }
-
-    std::string header = std::format("{0:<{1}} | {2:<{3}} | {4:<{5}}",
-                                     roomName, nameWidth,
-                                     roomDescription, descWidth,
-                                     roomLatestChat, timeWidth);
-
-    for (const auto &room : visiting.rooms)
-    {
-        std::string line = std::format("{0:<{1}} | {2:<{3}} | {4:<{5}}",
-                                       room.roomName, nameWidth,
-                                       room.description, descWidth,
-                                       room.latestChat, timeWidth);
-        rooms.push_back(line);
-    }
+    auto [header, rooms] = prettier({"방 제목", "방 설명", "최근 채팅 시간"}, v);
 
     {
         std::lock_guard<std::mutex> lock(visiting.mutex);
