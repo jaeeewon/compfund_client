@@ -15,3 +15,4 @@ void openMessageBox(const std::string &title, const std::string &body);
 std::pair<std::string, std::vector<std::string>> prettier(
     const std::vector<std::string> &keys,
     const std::vector<std::vector<std::string>> &values);
+std::string timeAgo(time_t past);

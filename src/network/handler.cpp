@@ -72,10 +72,10 @@ void handleWebsocket(std::string response, SharedState &state)
                     pt.nickname = p["userId"]["nickname"];
                     pt.picture = p["userId"]["picture"];
                     ptstate.participants[pt.id] = pt;
-                    room.participants.insert(pt.id);
+                    room.participants.insert({pt.id, p["lastReadAt"]});
                 }
 
-                state.rooms[room.roomName] = room;
+                state.rooms[room.roomId] = room;
             };
         }
         else if (type == "create-room-res" || type == "join-room-res")
@@ -98,7 +98,7 @@ void handleWebsocket(std::string response, SharedState &state)
             // }
             // room.roomName = roomName;
 
-            state.rooms[room.roomName] = room;
+            state.rooms[room.roomId] = room;
             if (type.starts_with("create"))
                 std::cout << "방이 성공적으로 생성되었습니다!\n방 이름: " << room.roomName << std::endl;
             else
@@ -114,26 +114,26 @@ void handleWebsocket(std::string response, SharedState &state)
 
             std::lock_guard<std::mutex> lock(state.mutex);
 
-            RoomState r;
-            for (auto &rm : state.rooms)
-            {
-                if (rm.second.roomId == roomId)
-                {
-                    r = rm.second;
-                    break;
-                }
-            }
+            // RoomState r;
+            // for (auto &rm : state.rooms)
+            // {
+            //     if (rm.second.roomId == roomId)
+            //     {
+            //         r = rm.second;
+            //         break;
+            //     }
+            // }
             std::string p;
-            for (auto &pt : r.participants)
+            for (auto &pt : state.rooms[roomId].participants)
             {
-                if (pt == ch.userId)
+                if (pt.first == ch.userId)
                 {
-                    p = pt;
+                    p = pt.first;
                     break;
                 }
             }
 
-            state.rooms[r.roomName].chats.push_back(ch);
+            state.rooms[roomId].chats.push_back(ch);
 
             if (state.currentRoom == nullptr || state.currentRoom->roomId != roomId)
             {
@@ -141,7 +141,7 @@ void handleWebsocket(std::string response, SharedState &state)
                 std::lock_guard<std::mutex> lock(ptstate.mutex);
                 p = ptstate.participants[p].nickname;
 
-                std::string msg = std::format("{}에서 {}의 새 메시지: {}", r.roomName, p, ch.text);
+                std::string msg = std::format("{}에서 {}의 새 메시지: {}", state.rooms[roomId].roomName, p, ch.text);
                 std::string title = "새로운 메시지 알림";
 
                 openMessageBox(title, msg);
@@ -187,9 +187,16 @@ void handleWebsocket(std::string response, SharedState &state)
                 pt.nickname = p["nickname"];
                 pt.picture = p["picture"];
                 ptstate.participants[pt.id] = pt;
-                shared.currentRoom->participants.insert(p["_id"]);
+                shared.currentRoom->participants[pt.id] = p["lastReadAt"];
             }
             load_chat.updated = true;
+        }
+        else if (type == "read-chat-event")
+        {
+            // 서버단 신뢰
+            // roomId, userId, timestamp
+            std::lock_guard<std::mutex> lockpt(shared.mutex);
+            shared.rooms[parsed["data"]["roomId"]].participants[parsed["data"]["userId"]] = parsed["data"]["timstamp"];
         }
         else
         {

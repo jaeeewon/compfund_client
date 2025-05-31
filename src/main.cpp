@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
                     std::vector<std::string> nicknames;
                     for (const auto &p : room.participants)
                     {
-                        auto it = ptstate.participants.find(p);
+                        auto it = ptstate.participants.find(p.first);
                         if (it != ptstate.participants.end())
                             nicknames.push_back(it->second.nickname);
                     }

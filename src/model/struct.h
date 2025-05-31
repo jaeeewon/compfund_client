@@ -27,13 +27,14 @@ struct Chat
 {
     std::string userId;
     std::string text;
-    std::string createdAt;
+    time_t createdAt;
+    std::set<std::string> readers; // made by EUNHYE(2025-05-29): This stores the list of user IDs who have read the message.
 };
 
 struct RoomState
 {
     std::vector<Chat> chats;
-    std::set<std::string> participants;
+    std::unordered_map<std::string, time_t> participants;
     std::string roomName;
     std::string roomId;
     std::string description;

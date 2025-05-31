@@ -198,3 +198,22 @@ std::pair<std::string, std::vector<std::string>> prettier(
 
     return {header, rows};
 }
+
+std::string timeAgo(time_t past)
+{
+    using namespace std::chrono;
+
+    time_t now = system_clock::to_time_t(system_clock::now());
+    time_t diff = now - past;
+
+    if (diff < 60)
+        return "방금 전";
+    else if (diff < 3600)
+        return std::to_string(diff / 60) + "분 전";
+    else if (diff < 86400)
+        return std::to_string(diff / 3600) + "시간 전";
+    else if (diff < 7 * 86400)
+        return std::to_string(diff / 86400) + "일 전";
+    else
+        return std::to_string(diff / (7 * 86400)) + "주 전";
+}

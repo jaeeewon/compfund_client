@@ -17,6 +17,7 @@ void moveToRoom(SharedState &state, std::string &input, SOCKET sock)
     int lastPrinted = -1;
 
     std::vector<Chat> chatsCopy;
+    std::unordered_map<std::string, time_t> usr_map;
     std::string roomName, roomId, userId;
     std::string inputBuffer = "";
     std::string prevInputBuffer = " ";
@@ -40,7 +41,16 @@ void moveToRoom(SharedState &state, std::string &input, SOCKET sock)
     {
         {
             std::lock_guard<std::mutex> lock(state.mutex);
+            std::lock_guard<std::mutex> lock2(ptstate.mutex);
             chatsCopy = state.currentRoom->chats;
+            for (auto &c : chatsCopy)
+            {
+                for (const auto [id, lastReadTime] : state.currentRoom->participants)
+                {
+                    if (lastReadTime > c.createdAt)
+                        c.readers.insert(id);
+                }
+            }
         }
 
         // 새로운 채팅이 생긴 경우에만 출력
@@ -51,8 +61,7 @@ void moveToRoom(SharedState &state, std::string &input, SOCKET sock)
             {
                 const Participant &usr = ptstate.participants[chatsCopy[i].userId];
                 moveCursorTo(0, baseY + i);
-                std::cout << usr.nickname << " | " << chatsCopy[i].text
-                          << std::string(50, ' ') << "\n";
+                std::cout << usr.nickname << " | " << chatsCopy[i].text << std::string(50, ' ') << "\n";
             }
 
             guideY = baseY + (int)chatsCopy.size();
@@ -102,13 +111,23 @@ void moveToRoom(SharedState &state, std::string &input, SOCKET sock)
             std::lock_guard<std::mutex> lock(ptstate.mutex);
             const Participant &usr = ptstate.participants[chat.userId];
 
-            std::time_t unix_timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            std::time_t unix_timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()); // in second
 
             std::cout << "[채팅 디테일] 닉네임: " << usr.nickname
-                      << " | 최근 활동: " << (unix_timestamp - usr.latest_access) / 1000 / 60 << "분 전"
-                      << " | 전송: " << chat.createdAt
-                      << " | 내용: " << chat.text
-                      << std::string(30, ' ') << "\n";
+                      << " | 최근 활동: " << timeAgo(usr.latest_access / 1000)
+                      << " | 전송: " << timeAgo(chat.createdAt / 1000)
+                      << " | 내용: " << chat.text;
+
+            // made by EUNHYE(2025-05-29): Display readers of each chat message
+            if (!chat.readers.empty())
+            {
+                std::cout << " | 읽음 (" << chat.readers.size() << "명): ";
+                for (const auto &reader : chat.readers)
+                {
+                    std::cout << ptstate.participants[reader].name << ", ";
+                }
+            }
+            std::cout << std::string(30, ' ') << "\n";
         }
 
         // // 입력창 출력

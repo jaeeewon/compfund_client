@@ -41,6 +41,49 @@ void send_ws_message(SOCKET sock, const std::string &type, const json &data)
     send(sock, (const char *)frame.data(), frame.size(), 0);
 }
 
+void wsAssertionThread()
+{
+    while (true)
+    {
+        // websocket assertion
+        json data;
+        data["type"] = "ping";
+        send_ws_message(sock, "ping", data);
+        std::this_thread::sleep_for(std::chrono::seconds(30));
+    }
+}
+
+void readHandlingThread()
+{
+    while (true)
+    {
+        std::string roomId;
+        std::string userId;
+        bool send = false;
+
+        {
+            std::lock_guard<std::mutex> lock(shared.mutex);
+            if (shared.currentRoom != nullptr)
+            {
+                roomId = shared.currentRoom->roomId;
+                userId = shared.user.id;
+                send = true;
+            }
+        }
+
+        if (send)
+        {
+            json data;
+            data["userId"] = userId;
+            data["detail"]["roomId"] = roomId;
+
+            send_ws_message(sock, "read-chat", data);
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+
 SOCKET initializeSocket()
 {
     WSADATA wsa;
@@ -77,16 +120,10 @@ SOCKET initializeSocket()
     // std::cout << "[Handshake 응답]\n"
     //           << buffer << "\n";
 
-    std::thread([]()
-                {
-    while (true) {
-        // websocket assertion
-        json data;
-        data["type"] = "ping";
-        send_ws_message(sock, "ping", data);
-        std::this_thread::sleep_for(std::chrono::seconds(30));
-    } })
+    std::thread(wsAssertionThread)
         .detach();
+
+    std::thread(readHandlingThread).detach();
 
     return sock;
 }

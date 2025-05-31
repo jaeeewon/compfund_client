@@ -1,5 +1,6 @@
 CXX = g++
-CXXFLAGS = -std=c++20 -Isrc -Wall
+CXXFLAGS = -std=c++20 -Isrc
+#  -Wall
 LDFLAGS = -lws2_32
 TARGET = client.exe
 
