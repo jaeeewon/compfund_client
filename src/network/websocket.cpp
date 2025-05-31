@@ -49,7 +49,10 @@ SOCKET initializeSocket()
     addrinfo hints = {}, *res = nullptr;
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    getaddrinfo("comp-fund.jae.one", "80", &hints, &res);
+    bool isDev = false;
+    std::string HOST = isDev ? "chuncheon" : "comp-fund.jae.one";
+    std::string PORT = isDev ? "2101" : "80";
+    getaddrinfo(HOST.c_str(), PORT.c_str(), &hints, &res);
 
     sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     connect(sock, res->ai_addr, (int)res->ai_addrlen);
@@ -59,7 +62,9 @@ SOCKET initializeSocket()
     std::string ws_key = generate_ws_key();
     std::stringstream req;
     req << "GET /api/ws HTTP/1.1\r\n"
-        << "Host: comp-fund.jae.one\r\n"
+        << "Host: "
+        << HOST
+        << "\r\n"
         << "Upgrade: websocket\r\n"
         << "Connection: Upgrade\r\n"
         << "Sec-WebSocket-Key: " << ws_key << "\r\n"
