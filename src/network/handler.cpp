@@ -45,6 +45,7 @@ void handleWebsocket(std::string response, SharedState &state)
             state.user.email = parsed["data"]["email"];
             state.user.name = parsed["data"]["name"];
             state.user.nickname = parsed["data"]["nickname"];
+            state.user.status = parsed["data"]["status"];
             state.user.picture = parsed["data"]["picture"];
 
             for (auto &r : parsed["data"]["rooms"])
@@ -65,14 +66,15 @@ void handleWebsocket(std::string response, SharedState &state)
                 for (auto &p : r["participants"])
                 {
                     Participant pt;
-                    pt.id = p["userId"]["_id"];
+                    pt.id = p["userId"]["id"];
                     pt.email = p["userId"]["email"];
                     pt.latest_access = p["userId"]["latest_access"];
                     pt.name = p["userId"]["name"];
                     pt.nickname = p["userId"]["nickname"];
                     pt.picture = p["userId"]["picture"];
+                    pt.status = p["userId"]["status"];
                     ptstate.participants[pt.id] = pt;
-                    room.participants.insert({pt.id, p["lastReadAt"]});
+                    room.participants[pt.id] = p["lastReadAt"];
                 }
 
                 state.rooms[room.roomId] = room;
@@ -123,15 +125,15 @@ void handleWebsocket(std::string response, SharedState &state)
             //         break;
             //     }
             // }
-            std::string p;
-            for (auto &pt : state.rooms[roomId].participants)
-            {
-                if (pt.first == ch.userId)
-                {
-                    p = pt.first;
-                    break;
-                }
-            }
+            // std::string p;
+            // for (auto &pt : state.rooms[roomId].participants)
+            // {
+            //     if (pt.first == ch.userId)
+            //     {
+            //         p = pt.first;
+            //         break;
+            //     }
+            // }
 
             state.rooms[roomId].chats.push_back(ch);
 
@@ -139,9 +141,8 @@ void handleWebsocket(std::string response, SharedState &state)
             {
 
                 std::lock_guard<std::mutex> lock(ptstate.mutex);
-                p = ptstate.participants[p].nickname;
 
-                std::string msg = std::format("{}에서 {}의 새 메시지: {}", state.rooms[roomId].roomName, p, ch.text);
+                std::string msg = std::format("{}에서 {}의 새 메시지: {}", state.rooms[roomId].roomName, ptstate.participants[ch.userId].name, ch.text);
                 std::string title = "새로운 메시지 알림";
 
                 openMessageBox(title, msg);
@@ -180,7 +181,7 @@ void handleWebsocket(std::string response, SharedState &state)
             for (auto &p : parsed["data"]["participants"])
             {
                 Participant pt;
-                pt.id = p["_id"];
+                pt.id = p["id"];
                 pt.email = p["email"];
                 pt.latest_access = p["latest_access"];
                 pt.name = p["name"];
@@ -195,8 +196,32 @@ void handleWebsocket(std::string response, SharedState &state)
         {
             // 서버단 신뢰
             // roomId, userId, timestamp
-            std::lock_guard<std::mutex> lockpt(shared.mutex);
-            shared.rooms[parsed["data"]["roomId"]].participants[parsed["data"]["userId"]] = parsed["data"]["timstamp"];
+            std::lock_guard<std::mutex> lock(shared.mutex);
+            std::string roomId = parsed["data"]["roomId"];
+            std::string userId = parsed["data"]["userId"];
+            time_t timestamp = parsed["data"]["timestamp"];
+            shared.rooms[roomId].participants[userId] = timestamp;
+        }
+        else if (type == "status-update-event")
+        {
+            std::lock_guard<std::mutex> lock(shared.mutex);
+            std::lock_guard<std::mutex> lockpt(ptstate.mutex);
+            std::string userId = parsed["data"]["userId"];
+            std::string status = parsed["data"]["status"];
+            if (!ptstate.participants.contains(userId) && shared.user.id != userId)
+            {
+                // std::cout << "미가입유저 " << userId << std::endl;
+                return;
+            }
+            if (shared.user.id == userId)
+            {
+                shared.user.status = status;
+                if (ptstate.participants.contains(userId))
+                    ptstate.participants[userId].status = status;
+                std::cout << "성공적으로 상태를 업데이트했습니다." << std::endl;
+            }
+            else
+                ptstate.participants[userId].status = status;
         }
         else
         {
@@ -205,6 +230,6 @@ void handleWebsocket(std::string response, SharedState &state)
     }
     catch (...)
     {
-        std::cerr << "[JSON 파싱 실패] " << response << std::endl;
+        std::cerr << "[응답 처리 실패] " << response << std::endl;
     }
 }

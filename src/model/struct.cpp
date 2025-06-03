@@ -12,6 +12,7 @@ struct Participant
     std::string nickname;
     std::string email;
     std::string picture;
+    std::string status;
     time_t latest_access;
 };
 

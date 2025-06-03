@@ -14,6 +14,7 @@ struct Participant
     std::string nickname;
     std::string email;
     std::string picture;
+    std::string status;
     time_t latest_access;
 };
 
@@ -70,6 +71,7 @@ struct UserState
     std::string ticket;
     std::string nickname;
     std::string picture;
+    std::string status;
 };
 
 struct SharedState

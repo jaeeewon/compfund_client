@@ -40,18 +40,12 @@ int main(int argc, char *argv[])
 
     std::cout << "로그인 완료!" << std::endl;
 
-    int level = 0;
-    std::vector<std::string> msgs;
-
-    msgs.push_back("/exit 종료     /my 내 정보     /rooms 참여한 방 목록\n/create 방 만들기    /room-list 참여 가능한 방 목록");
-
-    // std::cout << msgs[level] << std::endl;
+    std::string message = "/exit 종료     /my 내 정보     /rooms 참여한 방 목록\n/create 방 만들기    /room-list 참여 가능한 방 목록\n/status   모든 참여자의 상태 확인     /status <상태>    상태 메시지 설정";
 
     std::string input;
     while (true)
     {
-        // if (input == "/back" || input == "/my")
-        std::cout << msgs[level] << std::endl;
+        std::cout << message << std::endl;
         std::cout << "\n> ";
         if (!std::getline(std::cin, input))
         {
@@ -141,6 +135,34 @@ int main(int argc, char *argv[])
         else if (input == "/room-list")
         {
             handleRoomList();
+        }
+        else if (input == "/status")
+        {
+            std::lock_guard<std::mutex> lock(shared.mutex);
+            std::lock_guard<std::mutex> ptlock(ptstate.mutex);
+            // unordered_map의 순회는 나쁜 걸 너무 잘 알지만
+            // 기말고사 2주 전에 구조 바꾸는 것 보다는,,
+            system("cls");
+            std::cout << "현재 참여중인 방의 가입자만 보여집니다.\n"
+                      << std::endl;
+            std::cout << std::format("(나) {} | {}", shared.user.name, shared.user.status.size() ? shared.user.status : "<설정되지 않음>") << std::endl;
+            for (const auto &[id, pt] : ptstate.participants)
+                if (id != shared.user.id)
+                    std::cout << std::format("{} | {}", pt.name, pt.status.size() ? pt.status : "<설정되지 않음>") << '\n';
+            std::cout << std::string(50, '=') << '\n'
+                      << std::endl;
+        }
+        else if (input.starts_with("/status "))
+        {
+            std::string newStatus = input.substr(8); // "/status " 이후 문자열
+            if (newStatus.size() == 0)
+                continue;
+
+            std::lock_guard<std::mutex> lock(shared.mutex);
+            json data;
+            data["userId"] = shared.user.id;
+            data["detail"]["status"] = newStatus;
+            send_ws_message(sock, "update-status", data);
         }
         else
         {
