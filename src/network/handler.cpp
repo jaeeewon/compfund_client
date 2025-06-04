@@ -142,7 +142,7 @@ void handleWebsocket(std::string response, SharedState &state)
 
                 std::lock_guard<std::mutex> lock(ptstate.mutex);
 
-                std::string msg = std::format("{}에서 {}의 새 메시지: {}", state.rooms[roomId].roomName, ptstate.participants[ch.userId].name, ch.text);
+                std::string msg = std::format("{}에서 {}의 새 메시지: {}", state.rooms[roomId].roomName, ptstate.participants[ch.userId].nickname, ch.text);
                 std::string title = "새로운 메시지 알림";
 
                 openMessageBox(title, msg);
@@ -208,11 +208,13 @@ void handleWebsocket(std::string response, SharedState &state)
             std::lock_guard<std::mutex> lockpt(ptstate.mutex);
             std::string userId = parsed["data"]["userId"];
             std::string status = parsed["data"]["status"];
+            /*
+            서버단에서 참여 중인 채팅방의 멤버의 이벤트만 전달하도록 수정하여 주석 처리함
             if (!ptstate.participants.contains(userId) && shared.user.id != userId)
             {
-                // std::cout << "미가입유저 " << userId << std::endl;
                 return;
             }
+            */
             if (shared.user.id == userId)
             {
                 shared.user.status = status;
@@ -222,6 +224,23 @@ void handleWebsocket(std::string response, SharedState &state)
             }
             else
                 ptstate.participants[userId].status = status;
+        }
+        else if (type == "nickname-update-event")
+        {
+            std::lock_guard<std::mutex> lock(shared.mutex);
+            std::lock_guard<std::mutex> lockpt(ptstate.mutex);
+            std::string userId = parsed["data"]["userId"];
+            std::string nickname = parsed["data"]["nickname"];
+
+            if (shared.user.id == userId)
+            {
+                shared.user.nickname = nickname;
+                if (ptstate.participants.contains(userId))
+                    ptstate.participants[userId].nickname = nickname;
+                std::cout << "성공적으로 닉네임을 업데이트했습니다." << std::endl;
+            }
+            else
+                ptstate.participants[userId].nickname = nickname;
         }
         else
         {

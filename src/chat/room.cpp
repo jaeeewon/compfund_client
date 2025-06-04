@@ -124,7 +124,7 @@ void moveToRoom(SharedState &state, std::string &input, SOCKET sock)
                 std::cout << " | 읽음 (" << chat.readers.size() << "명): ";
                 for (const auto &reader : chat.readers)
                 {
-                    std::cout << ptstate.participants[reader].name << ", ";
+                    std::cout << ptstate.participants[reader].nickname << ", ";
                 }
             }
             std::cout << std::string(30, ' ') << "\n";
