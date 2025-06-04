@@ -5,6 +5,21 @@
 #include <mutex>
 #include <vector>
 
+struct Leaderboard
+{
+    std::string id;
+    std::string nickname;
+    int exp;
+    int level;
+};
+
+struct LeaderboardState
+{
+    std::vector<Leaderboard> leaderboard;
+    bool updated;
+    std::mutex mutex;
+};
+
 struct Participant
 {
     std::string id;

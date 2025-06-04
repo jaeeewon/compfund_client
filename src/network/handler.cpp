@@ -242,6 +242,27 @@ void handleWebsocket(std::string response, SharedState &state)
             else
                 ptstate.participants[userId].nickname = nickname;
         }
+        else if (type == "get-leaderboard-res")
+        {
+            std::lock_guard<std::mutex> locklb(load_leaderboard.mutex);
+            load_leaderboard.leaderboard.clear();
+
+            for (const auto &usr : parsed["data"]["leaderboard"])
+                load_leaderboard.leaderboard.push_back(Leaderboard{usr["id"], usr["nickname"], usr["exp"], usr["level"]});
+
+            load_leaderboard.updated = true;
+        }
+        else if (type == "level-up-event")
+        {
+            std::lock_guard<std::mutex> lockpt(ptstate.mutex);
+            std::lock_guard<std::mutex> lock(shared.mutex);
+            std::string userId = parsed["data"]["userId"];
+            int level = parsed["data"]["level"]; // 충분히 작으니
+            bool isMine = shared.user.id == userId;
+            std::string title = isMine ? "레벨 업 알림" : "이웃의 레벨업 알림";
+            std::string body = isMine ? std::format("현재 Level {}", level) : std::format("{}이(가) 레벨업 했습니다! 축하해주세요\n: Level {}", ptstate.participants[userId].nickname, level);
+            openMessageBox(title, body);
+        }
         else
         {
             std::cout << "미확인 타입 " << type << std::endl;

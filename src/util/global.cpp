@@ -10,3 +10,4 @@ VisitingRoomState visiting;
 ParticipantState ptstate;
 DataRaceState join_room;
 DataRaceState load_chat;
+LeaderboardState load_leaderboard;

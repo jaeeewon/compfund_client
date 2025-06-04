@@ -11,3 +11,4 @@ extern VisitingRoomState visiting;
 extern ParticipantState ptstate;
 extern DataRaceState join_room;
 extern DataRaceState load_chat;
+extern LeaderboardState load_leaderboard;

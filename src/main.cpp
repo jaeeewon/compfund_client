@@ -3,6 +3,7 @@
 #include "util/arrowselector.h"
 #include "util/global.h"
 #include "util/console.h"
+#include "util/leaderboard.h"
 #include "chat/room.h"
 #include "network/websocket.h"
 
@@ -40,7 +41,7 @@ int main(int argc, char *argv[])
 
     std::cout << "로그인 완료!" << std::endl;
 
-    std::string message = "/exit 종료     /my 내 정보     /rooms 참여한 방 목록\n/create 방 만들기    /room-list 참여 가능한 방 목록\n/status   모든 참여자의 상태 확인     /status <상태>    상태 메시지 설정\n/nickname <닉네임>  닉네임 설정";
+    std::string message = "/exit 종료     /my 내 정보     /rooms 참여한 방 목록\n/create 방 만들기    /room-list 참여 가능한 방 목록\n/status   모든 참여자의 상태 확인     /status <상태>    상태 메시지 설정\n/nickname <닉네임>  닉네임 설정     /leaderboard    리더보드 확인";
 
     std::string input;
     while (true)
@@ -175,6 +176,47 @@ int main(int argc, char *argv[])
             data["userId"] = shared.user.id;
             data["detail"]["nickname"] = nickname;
             send_ws_message(sock, "update-nickname", data);
+        }
+        else if (input == "/leaderboard")
+        {
+            loadLeaderboard();
+
+            std::lock_guard<std::mutex> lock(shared.mutex);
+            std::lock_guard<std::mutex> lockl(load_leaderboard.mutex);
+            std::lock_guard<std::mutex> lockpt(ptstate.mutex);
+
+            int i = 0;
+            int prev = -1;
+            // for (const auto &l : load_leaderboard.leaderboard)
+            // {
+            //     std::string relation = l.id == shared.user.id ? "나" : ptstate.participants.contains(l.id) ? "이웃"
+            //                                                                                                : "낯선 사람";
+            //     std::cout << std::format("{}등 | [{}] {} | level {} | exp {}", prev == l.exp ? i : ++i, relation, l.nickname, l.level, l.exp) << std::endl;
+            //     prev = l.exp;
+            // }
+
+            std::vector<std::vector<std::string>> v;
+            for (const auto &l : load_leaderboard.leaderboard)
+            {
+                std::string relation = l.id == shared.user.id ? "나" : ptstate.participants.contains(l.id) ? "이웃"
+                                                                                                           : "낯선 사람";
+                std::string rank = std::format("{}등", prev == l.exp ? i : ++i);
+                v.push_back({rank, relation, l.nickname, std::to_string(l.level), std::to_string(l.exp)});
+                prev = l.exp;
+            }
+
+            auto [header, lbstrs] = prettier({"등수", "관계", "닉네임", "레벨", "경험치"}, v);
+
+            system("cls");
+            std::cout << "<< 리더보드 >>" << '\n'
+                      << "같은 방에 참여하고 있을 경우 이웃으로 표기되며, 그렇지 않은 경우에는 낯선 사람으로 표기됩니다." << '\n'
+                      << std::string('=', 30) << '\n'
+                      << header << std::endl;
+
+            for (const auto &str : lbstrs)
+                std::cout << str << '\n';
+
+            std::cout << std::string('=', 30) << std::endl;
         }
         else
         {
