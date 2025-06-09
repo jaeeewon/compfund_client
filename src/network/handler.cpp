@@ -90,15 +90,20 @@ void handleWebsocket(std::string response, SharedState &state)
             room.roomId = parsed["data"]["room"]["_id"];
             room.description = parsed["data"]["room"]["description"];
             room.latestChat = parsed["data"]["room"]["latestChat"];
-            // for (auto &p : parsed["data"]["room"]["participants"])
-            // {
-            //     Participant pt;
-            //     pt.id = p["_id"];
-            //     pt.name = p["name"];
-            //     pt.nickname = p["nickname"];
-            //     room.participants.push_back(pt);
-            // }
-            // room.roomName = roomName;
+
+            for (auto &p : parsed["data"]["participants"])
+            {
+                Participant pt;
+                pt.id = p["userId"]["id"];
+                pt.email = p["userId"]["email"];
+                pt.latest_access = p["userId"]["latest_access"];
+                pt.name = p["userId"]["name"];
+                pt.nickname = p["userId"]["nickname"];
+                pt.picture = p["userId"]["picture"];
+                pt.status = p["userId"]["status"];
+                ptstate.participants[pt.id] = pt;
+                room.participants[pt.id] = p["lastReadAt"];
+            }
 
             state.rooms[room.roomId] = room;
             if (type.starts_with("create"))
